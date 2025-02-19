@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 bitcoin_hashes = "0.12.0"
 delve = { version = "0.3.0", features = ["derive"] }
-ig_tools = { version = "0.1.0-unstable", path = "../ig_tools" }
+ig_tools = { version = "0.2.0", path = "../ig_tools" }
