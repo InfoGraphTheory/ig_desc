@@ -17,56 +17,170 @@ use super::{descriptor_store::DescriptorStore, descriptor_facade::{DescIndex, se
 use crate::descriptor_tools;
 use ig_tools::file_tools;
 
-#[derive(Clone)]
-pub struct DescriptorStoreFS {
-    file_folder: String,
-    index_folder: String,
-    space_folder: String,
+use confy;
+use serde::{Deserialize, Serialize};
+use dirs;
+use std::path::PathBuf;
+
+
+#[derive(Clone, Serialize, Deserialize)]
+struct DescConfig {
+
+    app_parent_path: PathBuf,
+    app_folder_name: String,
+    space_folder_name: String,
     desc_folder_name: String,
     index_folder_name: String,
     org_space: String,
     tmp_space: Option<String>,
 }
 
-impl DescriptorStoreFS {
-
-    pub fn new(space_id: String) -> Self{
-        //TODO: Find better config solution: A bit of a hack that we create the folder as soon as an object is created and that folder
-        //delimiter char is handled by relying on the user to set folder name plus delimiter in a
-        //variable.
-        let file_folder = "infospace/files/descs/";
-        let index_folder = "infospace/files/indexes/";
-        
-        let space_folder = "infospace/files/spaces/";
-        let desc_folder_name = "descs";
-        let index_folder_name = "indexes";
-        //TODO: Find out  what to do if folders cannot be created on the filesystem.
-        //This scenario is unlikely though, especially since folder creation is only relevant on first run.
-        let _ = fs::create_dir_all(&file_folder);
-        let _ = fs::create_dir_all(&index_folder);
-        let _ = fs::create_dir_all(&space_folder);
-        
-        Self::create_indexfile_if_not_there(DescIndex::DescPointIndex.to_string(), index_folder.to_string());
-        Self::create_indexfile_if_not_there(DescIndex::DescNameIndex.to_string(), index_folder.to_string());
-        Self::create_indexfile_if_not_there(DescIndex::DescLabelIndex.to_string(), index_folder.to_string());
-        Self::create_indexfile_if_not_there(DescIndex::DescDescIndex.to_string(), index_folder.to_string());
-
-        DescriptorStoreFS{
-            file_folder: String::from(file_folder), 
-            index_folder: String::from(index_folder),
-            space_folder: String::from(space_folder),
-            desc_folder_name: String::from(desc_folder_name),
-            index_folder_name: String::from(index_folder_name),
-            org_space: space_id.clone(),
-            tmp_space: Option::None,
+impl ::std::default::Default for DescConfig {
+    fn default() -> Self {
+        Self {
+            app_parent_path: dirs::data_local_dir().unwrap_or_else(||PathBuf::new()),
+            app_folder_name: "infospace".to_string(),
+            space_folder_name: "spaces".to_string(),
+            desc_folder_name: "descs".to_string(),
+            index_folder_name: "indexes".to_string(),
+            org_space: "default".to_string(),
+            tmp_space: None,
         }
     }
+}
+
+#[derive(Clone)]
+pub struct DescriptorStoreFS {
+    config: DescConfig,
+    app_folder_path: PathBuf,
+    space_folder_path: PathBuf,
+    desc_folder_path: PathBuf,
+    index_folder_path: PathBuf,
+}
+
+impl ::std::default::Default for DescriptorStoreFS {
+    fn default() -> Self {
+        Self {
+            config: DescConfig::default(),
+            app_folder_path: PathBuf::new(),
+            desc_folder_path: PathBuf::new(),
+            index_folder_path: PathBuf::new(),
+            space_folder_path: PathBuf::new(),
+        }
+    }
+}
+
+impl DescriptorStoreFS {
+///
+/// Create a new DescriptorStoreFS. 
+///
+/// The parameter app_name is optionally the name of the
+/// application which then will be the name of the app folder containing the data.
+/// If no name is given "infospace" is used as a catch all folder.
+/// 
+/// Parameter space_id is an optional space that data is to be stored or retrieved from, per
+/// default. If no space parameter is given the data will be stored in the root desc and index
+/// folders of the app folder. 
+///
+/// Parameter desc_config is an optional name for a configuration file storing all path and folder
+/// name variables used to setup the DescriptorStoreFS. If the desc_config parameter is set the
+/// method will search for it in the standard configuration folder of your Operative System.
+/// If no configuration file is given, a default naming will be used by calling the Default trait
+/// for the DescConfig struct.
+    pub fn new(app_name: String, space_id: String, config_name: String) -> Self {
+
+        let mut config: DescConfig = confy::load(config_name.as_str(), None).unwrap();
+        if app_name.eq("") {
+            config.app_folder_name = "infospace".to_string();    
+        } else {
+            config.app_folder_name = app_name.clone();    
+        }
+        if space_id.eq("") {
+            config.org_space = "infospace".to_string();    
+        } else {
+            config.org_space = space_id.clone();    
+        }
+
+        let mut instance: DescriptorStoreFS = DescriptorStoreFS::default();
+        Self::create_folders_if_not_there(&mut instance, space_id);
+
+        instance
+    }
+
+    ///
+    /// Called when using a new space to make sure the space that is, its folders exists.
+    ///
+    ///
+    /// Creates the folders if not already there. The default parent folder is the default app data
+    /// folder of the Operative System running the applications.
+    ///    
+    fn create_folders_if_not_there(instance: &mut DescriptorStoreFS, space: String) {
+
+        let desc_config: DescConfig = instance.clone().config;
+
+        let data_dir = desc_config.app_parent_path.clone();
+        data_dir.join(desc_config.app_folder_name.clone());
+        instance.app_folder_path = data_dir.clone();
+
+        data_dir.join(desc_config.space_folder_name.clone());
+        data_dir.join(space.clone());
+        instance.space_folder_path = data_dir.clone();
+        let _ = fs::create_dir_all(data_dir.clone());
+        
+        Self::create_desc_folder_in_folder(desc_config.clone(), data_dir.clone(), instance);
+
+        Self::create_index_folder_in_folder(desc_config.clone(), data_dir.clone(), instance);
+        
+    }
+
+    ///
+    /// Used to create a folder for descriptors.
+    ///
+    fn create_desc_folder_in_folder(config: DescConfig, parent: PathBuf, instance: &mut DescriptorStoreFS) {
+        
+        let desc_folder_dir = parent.join(config.desc_folder_name);
+        instance.desc_folder_path = desc_folder_dir.clone();
+        let _ = fs::create_dir_all(desc_folder_dir);
+    }
+
+    //
+    // Used to create a folder for indexes, along with sub folders for specific indexes.
+    ///
+    fn create_index_folder_in_folder(config: DescConfig, parent: PathBuf, instance: &mut DescriptorStoreFS) {
+        
+        let index_folder_dir = parent.join(config.index_folder_name.clone());
+        instance.index_folder_path = index_folder_dir.clone();
+        let _ = fs::create_dir_all(index_folder_dir.clone());
+    
+        let index_dir = index_folder_dir.join(DescIndex::DescPointIndex.to_string());
+        let _ = fs::create_dir_all(index_dir);
+
+        let index_dir = index_folder_dir.join(DescIndex::DescNameIndex.to_string());
+        let _ = fs::create_dir_all(index_dir);
+
+        let index_dir = index_folder_dir.join(DescIndex::DescLabelIndex.to_string());
+        let _ = fs::create_dir_all(index_dir);
+
+        let index_dir = index_folder_dir.join(DescIndex::DescDescIndex.to_string());
+        let _ = fs::create_dir_all(index_dir);
+
+    }
+
+
+
+
+
+
+
+
+
+
 
     //nxt::todo::find out when and from where to call this fn
     pub fn create_space_files_and_dirs_if_not_there(&self, space_id: String){
 
-        let index_folder = self.create_space_dir_if_not_there(space_id.clone(), self.index_folder_name.clone());
-        let _ = self.create_space_dir_if_not_there(space_id.clone(), self.desc_folder_name.clone());
+        let index_folder = self.create_space_dir_if_not_there(space_id.clone(), self.index_folder_name.clone(), self.config);
+        let _ = self.create_space_dir_if_not_there(space_id.clone(), self.desc_folder_name.clone(), self.config);
 
         Self::create_indexfile_if_not_there(DescIndex::DescPointIndex.to_string(), index_folder.to_string());
         Self::create_indexfile_if_not_there(DescIndex::DescNameIndex.to_string(), index_folder.to_string());
@@ -74,26 +188,33 @@ impl DescriptorStoreFS {
         Self::create_indexfile_if_not_there(DescIndex::DescDescIndex.to_string(), index_folder.to_string());
     }
         
-    pub fn create_space_dir_if_not_there(&self, space_id: String, sub_folder_name: String) -> String {
-             
-        let mut space_dir = self.space_folder.clone();
-        space_dir.push_str(space_id.as_str());
-        space_dir.push('/');
-        space_dir.push_str(&sub_folder_name.clone());
-        let _ = fs::create_dir_all(space_dir.clone());
+    pub fn create_space_dir_if_not_there(&self, space_id: String, sub_folder_name: String, desc_config: DescConfig) -> PathBuf {
 
-        space_dir    
+        let data_path: PathBuf = Self::get_data_home(desc_config);
+        let data_path: PathBuf = data_path.join(self.space_folder);
+        let data_path: PathBuf = data_path.join(self.spaces_id);
+        let data_path: PathBuf = data_path.join(self.sub_folder_name);
+
+        let _ = fs::create_dir_all(data_path.clone());
+        data_path
     }
 
-    pub fn create_indexfile_if_not_there(filename: String, indexfolder: String) {
+    pub fn get_data_home(desc_config: DescConfig) -> PathBuf {
 
-        let mut path = indexfolder.clone();
-        if !path.ends_with('/') {
-            path.push('/');
-        }
-        path.push_str(filename.trim());
-        if !Path::new(&path).is_file() {
-            let _ = fs::write(path, "");
+        let data_dir = desc_config.app_parent_path.clone();
+        data_dir.join(desc_config.app_folder_name);
+        data_dir
+    }
+
+    //TODO:: make a fn like get_data_home for all relevant paths 
+
+    pub fn create_indexfile_if_not_there(filename: String, indexfolder: PathBuf) {
+        
+
+        let data_path: PathBuf = indexfolder.join(filename);
+
+        if !Path::new(&data_path).is_file() {
+            let _ = fs::write(data_path, "");
         }
     }
 

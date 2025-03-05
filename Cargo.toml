@@ -9,3 +9,8 @@ edition = "2021"
 bitcoin_hashes = "0.12.0"
 delve = { version = "0.3.0", features = ["derive"] }
 ig_tools = { version = "0.2.0", path = "../ig_tools" }
+confy = "0.6.1"
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139" #check version
+dirs = "6.0.0"
+
