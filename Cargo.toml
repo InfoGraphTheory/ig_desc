@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bitcoin_hashes = "0.12.0"
 delve = { version = "0.3.0", features = ["derive"] }
-ig_tools = { version = "0.2.0", path = "../ig_tools" }
+ig_tools = { version = "0.2.1", path = "../ig_tools" }
 confy = "0.6.1"
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139" #check version

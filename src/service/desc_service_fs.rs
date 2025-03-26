@@ -1,6 +1,8 @@
 
 use std::collections::HashMap;
 use crate::logic::desc_director::DescDirector;
+use crate::model::app::App;
+use crate::model::space::Space;
 use crate::{descriptor_facade::DescriptorFacade, descriptor_store_fs::DescriptorStoreFS, Descriptor};
 
 
@@ -13,25 +15,27 @@ use crate::{descriptor_facade::DescriptorFacade, descriptor_store_fs::Descriptor
 #[derive(Clone)]
 pub struct DescServiceFS {
     pub descs: DescDirector<DescriptorStoreFS>,
-    pub org_space: String,
-    pub tmp_space: Option<String>,
+    pub org_space: Space,
+    pub tmp_space: Option<Space>,
+    pub app_name: App,
 }
 
 impl DescServiceFS {
-    pub fn new(space_id: String) -> Self {
+    pub fn new(app_name: App, space_id: Space, config: String) -> Self {
     
-        let descriptors = DescriptorStoreFS::new(space_id.clone());
+        let descriptors = DescriptorStoreFS::new(app_name.clone(), space_id.clone(), config);
         let desc_facade = DescriptorFacade::new(descriptors);
 
         DescServiceFS { 
             descs: DescDirector::new(desc_facade),
             org_space: space_id.clone(),
             tmp_space: Option::None,
+            app_name, 
         }    
     }
 
     pub fn set_tmp_space_id(&mut self, space_id: String) {
-        self.tmp_space = Some(space_id);
+        self.tmp_space = Some(Space::from(space_id));
     }
 
     pub fn revert_space_id(&mut self) {
