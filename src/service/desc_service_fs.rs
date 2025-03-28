@@ -37,7 +37,6 @@ impl DescServiceFS {
     }
 
     pub fn create_desc(&self, point: String, name: String, label: String, description: String) -> Descriptor {
-        
         self.descs.create_desc( point, name, label, description)
     }
 
