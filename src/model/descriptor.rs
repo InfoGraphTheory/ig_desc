@@ -1,6 +1,7 @@
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub struct Descriptor {
     pub desc_id: String, 
     pub point: String, 
@@ -12,15 +13,15 @@ pub struct Descriptor {
 impl Descriptor {
 
     pub fn set_desc_id(&mut self, desc_id:&str){
-        self.desc_id = desc_id.to_string();
+        self.desc_id = desc_id.trim().replace("\n", "").replace("\r", "").to_string();
     }
 
     pub fn set_name(&mut self, name:&str){
-        self.name = name.to_string();
+        self.name = name.trim().replace("\n", "").replace("\r", "").to_string();
     }
 
     pub fn set_label(&mut self, label:&str){
-        self.label = label.to_string();
+        self.label = label.trim().replace("\n", "").replace("\r", "").to_string();
     }
 
     pub fn set_description(&mut self, description: &str) {
@@ -31,10 +32,10 @@ impl Descriptor {
 impl Descriptor {
     fn new(point: &str, name: &str, label: &str, description: &str) -> Descriptor{
         Descriptor{
-            point: point.to_string(), 
+            point: point.trim().replace("\n", "").replace("\r", "").to_string(), 
             desc_id: "".to_string(), 
-            name: name.to_string(), 
-            label: label.to_string(), 
+            name: name.trim().replace("\n", "").replace("\r", "").to_string(), 
+            label: label.trim().replace("\n", "").replace("\r", "").to_string(), 
             description: description.to_string()
         }
     }
@@ -52,34 +53,20 @@ impl Default for Descriptor {
    }
 }
 
-impl Clone for Descriptor{
-    fn clone(&self) -> Self {
-        Descriptor{
-            point: self.point.clone(),
-            desc_id: self.desc_id.clone(),
-            name: self.name.clone(),
-            label: self.label.clone(),
-            description: self.description.clone(),
-        } 
-    }
-}
-
 impl From<Descriptor> for String {
     fn from(desc: Descriptor) -> String {
         let mut one_string = String::new();
-        one_string.push_str(&desc.point);
+        one_string.push_str(&desc.point.trim().replace("\n", "").replace("\r", ""));
         one_string.push('\n');
-        one_string.push_str(&desc.name);
+        one_string.push_str(&desc.name.trim().replace("\n", "").replace("\r", ""));
         one_string.push('\n');
-        one_string.push_str(&desc.label);
+        one_string.push_str(&desc.label.trim().replace("\n", "").replace("\r", ""));
         one_string.push('\n');
         one_string.push_str(&desc.description);
         one_string 
     }
 }
 
-//todo: new::impl from one String
-//question if it should be from, into trait implementations  
 impl From<String> for Descriptor {
     fn from(string: String) -> Descriptor {
         if string.is_empty() {

@@ -6,20 +6,28 @@ pub fn get_desc_id(desc: &Descriptor) -> String {
     create_desc_id(&desc.point, &desc.name, &desc.label, &desc.description)    
 }
 
-
-//return digest after a bigger concat procedure
-//This approach to id creation dictates that fields has to be trimmed and that a newline char
-//has to be used as delimitter and that no other fields than the description can have newline
-//chars inside their value. In that way we can easily split the fields but at the expense of
-//newline dictatorship. 
+///
+/// Returns SHA digest for the data of a Descriptor after a bigger concat procedure.
+///
+/// Existing newline characters in anything but the multiline description are removed doing the process as these would not be allowed anyways. 
+///
+/// Some may notice that the string concatenation here is not far from what is produced in one
+/// Descriptor's to_string methods. 
+/// The reason the creation of the desc_id is not done within Descriptor is that the methodology
+/// for creating a Descriptor ID would be locked in the model.
+///
+/// The reason a similar to_string on Descriptor is not used here is because the generator of
+/// unique IDs for Descriptors would then be dependent on the formatting of an existing to_string
+/// method to never change. 
+///
 pub fn create_desc_id(point: &str, name: &str, label: &str, description: &str) -> String {
 
     let mut concat: String = String::from("");
-    concat.push_str(point.trim());
+    concat.push_str(&point.trim().replace("\n", "").replace("\r", ""));
     concat.push('\n');
-    concat.push_str(name.trim());
+    concat.push_str(&name.trim().replace("\n", "").replace("\r", ""));
     concat.push('\n');
-    concat.push_str(label.trim());
+    concat.push_str(&label.trim().replace("\n", "").replace("\r", ""));
     concat.push('\n');
     concat.push_str(description.trim());
     hashing_tools::hash_text(&concat)

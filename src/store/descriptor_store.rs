@@ -8,11 +8,7 @@ fn get_descs(&self, points: Vec<&str>) -> Vec<Descriptor>;
 
 fn get_desc_or_id(&self, name: &str) -> Descriptor;
 
-//fn get_space_desc_or_id(&self, name: &str, space_id: String) -> Descriptor;
-
 fn get_descs_or_else_ids(&self, points: Vec<String>) -> Vec<Descriptor>;
-
-//fn get_space_descs_or_else_ids(&self, points: Vec<String>, space_id: String) -> Vec<Descriptor>;
 
 fn get_all_descs(&self) -> Vec<Descriptor>;
 
@@ -21,7 +17,6 @@ fn add_desc(&self, desc: Descriptor, id: String);
 fn get_desc_point_indexes(&self) -> String;
 
 fn get_tmp_space_desc_point_indexes(&mut self, space_id: String) -> String;
-//fn get_space_desc_point_indexes(&mut self, space_id: String) -> String;
 
 fn get_desc_name_indexes(&self) -> String;
 

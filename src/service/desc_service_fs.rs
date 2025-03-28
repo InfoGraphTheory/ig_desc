@@ -6,12 +6,6 @@ use crate::model::space::Space;
 use crate::{descriptor_facade::DescriptorFacade, descriptor_store_fs::DescriptorStoreFS, Descriptor};
 
 
-//TODO: test that there isn't an error where indexes files get overwritten rather than appended also that files produced get
-//their own directory...
-//TODO: If not done already: merge the store_fs "pair" functions so that only the store trait functions are present. 
-//TODO: If not done already: Change all index reads and writes to use getIndexPath and all file reads and writes to use getFilePath methods.
-
-
 #[derive(Clone)]
 pub struct DescServiceFS {
     pub descs: DescDirector<DescriptorStoreFS>,

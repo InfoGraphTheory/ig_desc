@@ -64,31 +64,17 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
     ///
     pub fn add_desc_index(&self, desc: Descriptor) {
         self.storage.index_desc(desc);
-//        self.add_to_desc_point_index(desc.clone());
-//        self.add_to_desc_name_index(desc.clone());
-//        self.add_to_desc_label_index(desc.clone());
-//        self.add_to_desc_description_index(desc.clone());
-
     }
 
     pub fn get_descs(&self, points: Vec<&str>) -> Vec<Descriptor> {
-    
-        let content = self.storage.get_descs(points);
-        content
+        self.storage.get_descs(points)
     }
 
     pub fn get_descs_or_else_ids(&self, points: Vec<String>) -> Vec<Descriptor> {
     
-        let content = self.storage.get_descs_or_else_ids(points);
-        content
+        self.storage.get_descs_or_else_ids(points)
     }
-/*
-    pub fn get_space_descs_or_else_ids(&self, points: Vec<String>, space_id: String) -> Vec<Descriptor> {
-    
-        let content = self.storage.get_space_descs_or_else_ids(points, space_id);
-        content
-    }
-*/
+
     pub fn get_descs_hashmap_for_list(&self, list: Vec<String>) -> HashMap<String, Descriptor> {
         let mut descs: HashMap<String, Descriptor> = HashMap::new();
         self.get_descs_or_else_ids(list)
@@ -98,17 +84,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
             });
          descs   
     }
-/*
-    pub fn get_descs_hashmap_for_space_list(&self, list: Vec<String>, space_id: String) -> HashMap<String, Descriptor> {
-        let mut descs: HashMap<String, Descriptor> = HashMap::new();
-        self.get_space_descs_or_else_ids(list, space_id)
-            .iter()
-            .for_each(|x|{
-                descs.insert(x.point.clone(), x.clone());
-            });
-         descs   
-    }
-*/
+
     pub fn get_all_descs(&self) -> Vec<Descriptor> {
         self.storage.get_all_descs()
     }
@@ -121,41 +97,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
     }
 
     pub fn get_desc(&self, name: &str) -> Descriptor {
-    
-        let content = self.storage.get_desc(name);
-        Descriptor::from(content)
+        self.storage.get_desc(name)
     }
-/*
-    fn add_to_desc_point_index(&self, desc: Descriptor) {
-
-        let binding = self.storage.get_desc_point_indexes();
-        let line = descriptor_tools::create_desc_point_index_line(&desc); //no good since the line
-                                                                          //is medium dependent.
-        let lines = list_tools::append_ln_n_sort(&line, &binding);
-        self.storage.set_desc_point_indexes(&lines);
-    }
-
-    fn add_to_desc_name_index(&self, desc: Descriptor) {
-        let binding = self.storage.get_desc_name_indexes();
-        let line = descriptor_tools::create_desc_name_index_line(&desc);
-        let lines = list_tools::append_ln_n_sort(&line, &binding);
-        self.storage.set_desc_name_indexes(&lines);
-    }
-
-    fn add_to_desc_label_index(&self, desc: Descriptor) {
-        let binding = self.storage.get_desc_label_indexes();
-        let line = descriptor_tools::create_desc_label_index_line(&desc);
-        let lines = list_tools::append_ln_n_sort(&line, &binding);
-        self.storage.set_desc_label_indexes(&lines);
-    }
-
-    fn add_to_desc_description_index(&self, desc: Descriptor) {
-        let binding = self.storage.get_desc_description_indexes();
-        let line = descriptor_tools::create_desc_description_index_line(&desc);
-        let lines = list_tools::append_ln_n_sort(&line, &binding);
-        self.storage.set_desc_description_indexes(&lines);
-    }
-*/
-
 }
 
