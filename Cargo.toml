@@ -1,6 +1,6 @@
 [package]
 name = "ig_desc"
-version = "0.2.0-unstable"
+version = "0.3.0-unstable"
 description = "An implementation of descriptor notes."
 license = "MIT"
 edition = "2021"
