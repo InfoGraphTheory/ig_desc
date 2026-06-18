@@ -110,17 +110,16 @@ impl DescriptorStoreFS {
         let desc_config: DescConfig = self.clone().config;
 
         let data_dir = desc_config.app_parent_path.clone();
-        let _ = data_dir.join(desc_config.app_folder_name.clone());
-        self.app_folder_path = data_dir.clone();
+        self.app_folder_path = data_dir.join(&desc_config.app_folder_name);
 
-        let _ = data_dir.join(desc_config.space_folder_name.clone());
-        let _ = data_dir.join(self.get_space_id());
-        self.space_folder_path = data_dir.clone();
-        let _ = fs::create_dir_all(data_dir.clone());
-        
-        self.create_desc_folder_in_folder(desc_config.clone(), data_dir.clone());
+        self.space_folder_path = self.app_folder_path
+            .join(&desc_config.space_folder_name)
+            .join(self.get_space_id());
+        let _ = fs::create_dir_all(self.space_folder_path.clone());
 
-        self.create_index_folder_in_folder(desc_config.clone(), data_dir.clone());
+        self.create_desc_folder_in_folder(desc_config.clone(), self.space_folder_path.clone());
+
+        self.create_index_folder_in_folder(desc_config.clone(), self.space_folder_path.clone());
         
     }
 
@@ -323,10 +322,8 @@ impl DescriptorStore for DescriptorStoreFS {
     ///
     fn add_desc(&self, desc: Descriptor, id: String) {
         let description = String::from(desc.clone());
-        let path = self.desc_folder_path.clone();
-        let _ = path.join(id);
-
-        let _ = fs::write(path, description);
+        let file_path = self.desc_folder_path.join(id);
+        let _ = fs::write(file_path, description);
     }
 
 
