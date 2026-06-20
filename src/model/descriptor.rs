@@ -78,7 +78,7 @@ impl From<String> for Descriptor {
  
         } else {
             let mut lines = string.lines();
-            let id = lines.next().unwrap();
+            let id = lines.next().unwrap_or("");
             let name = lines.next().unwrap_or("");
             let label = lines.next().unwrap_or("");
             let description = lines.next().unwrap_or("");

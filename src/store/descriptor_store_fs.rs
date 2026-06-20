@@ -262,7 +262,7 @@ impl DescriptorStore for DescriptorStoreFS {
         let lines = binding.lines();
         let mut descs: Vec<Descriptor> = Vec::new();
 
-        let filenames: Vec<&str> = lines.map(|x|{x.split_once(' ').unwrap().1}).collect();
+        let filenames: Vec<&str> = lines.filter_map(|x| x.split_once(' ').map(|y| y.1)).collect();
         for filename in filenames {
             descs.push(Descriptor::from(self.load_desc(filename)));
         };
@@ -279,7 +279,7 @@ impl DescriptorStore for DescriptorStoreFS {
         let binding = self.get_desc_point_indexes();
         let mut lines = binding.lines();
 
-        let point = lines.find_map(|x|{ let y = x.split_once(" ").unwrap(); if y.0 == name {return Some(y.1)}else{ return None}});
+        let point = lines.find_map(|x| x.split_once(' ').and_then(|y| if y.0 == name { Some(y.1) } else { None }));
 
         let mut content = "".to_string();
         if point.is_some(){
@@ -303,11 +303,7 @@ impl DescriptorStore for DescriptorStoreFS {
         let mut lines = binding.lines();
 
         let point = lines
-            .find_map(|x|{ 
-                let y = x.split_once(" ").unwrap(); 
-                if y.0 == name { Some(y.1) }
-                else{ None }
-            });
+            .find_map(|x| x.split_once(' ').and_then(|y| if y.0 == name { Some(y.1) } else { None }));
 
         let mut content = "".to_string();
         if point.is_some(){
@@ -355,26 +351,26 @@ impl DescriptorStore for DescriptorStoreFS {
     /// This method returns all indexing records of descriptors in current space, based on the point field. 
     ///
     fn get_desc_point_indexes(&self) -> String {
-        let filename = self.get_index_path(DescIndex::DescPointIndex);    
-        fs::read_to_string(filename).expect("something wetn wrong reading the desc_point_index_file file")
+        let filename = self.get_index_path(DescIndex::DescPointIndex);
+        fs::read_to_string(filename).unwrap_or_default()
     }
 
     fn get_desc_name_indexes(&self) -> String  {
 
-        let filename = self.get_index_path(DescIndex::DescNameIndex);    
-        fs::read_to_string(filename).expect("something wetn wrong reading the desc_name_index_file file")
+        let filename = self.get_index_path(DescIndex::DescNameIndex);
+        fs::read_to_string(filename).unwrap_or_default()
     }
 
     fn get_desc_label_indexes(&self) -> String  {
-   
-        let filename = self.get_index_path(DescIndex::DescLabelIndex);    
-        fs::read_to_string(filename).expect("something wetn wrong reading the desc_label_index_file file")
+
+        let filename = self.get_index_path(DescIndex::DescLabelIndex);
+        fs::read_to_string(filename).unwrap_or_default()
     }
 
     fn get_desc_description_indexes(&self) -> String  {
-    
-        let filename = self.get_index_path(DescIndex::DescDescIndex);    
-        fs::read_to_string(filename).expect("something wetn wrong reading the desc_description_index_file file")
+
+        let filename = self.get_index_path(DescIndex::DescDescIndex);
+        fs::read_to_string(filename).unwrap_or_default()
     }
 
     ///
@@ -388,7 +384,7 @@ impl DescriptorStore for DescriptorStoreFS {
         self.set_tmp_space_id(space_id);
         let filename = self.get_index_path(DescIndex::DescPointIndex);
         self.revert_space_id();
-        fs::read_to_string(filename).expect("something wetn wrong reading the desc_point_index_file file")
+        fs::read_to_string(filename).unwrap_or_default()
     }
 
 

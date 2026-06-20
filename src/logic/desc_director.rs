@@ -47,8 +47,9 @@ impl<T:DescriptorStore> DescDirector<T> {
     ///
     pub fn get_desc_ls_line_number(&self, line_number: String) -> String {
         let descs: Vec<String> = self.descriptors.get_all_desc_ids();
-        let desc: Option<String> = descs.get(line_number.parse::<usize>().unwrap()).cloned();
-        desc.unwrap_or("".to_string()).to_string()
+        line_number.parse::<usize>().ok()
+            .and_then(|i| descs.get(i).cloned())
+            .unwrap_or_default()
     }
 
     ///
