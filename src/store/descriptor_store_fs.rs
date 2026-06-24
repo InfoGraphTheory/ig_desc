@@ -134,26 +134,19 @@ impl DescriptorStoreFS {
     }
 
     ///
-    /// Used to create a folder for indexes, along with sub folders for specific indexes.
+    /// Used to create the folder for indexes, along with the index files themselves
+    /// (each index is a single flat file, not a sub folder).
     ///
     fn create_index_folder_in_folder(&mut self, config: DescConfig, parent: PathBuf) {
-        
+
         let index_folder_dir = parent.join(config.index_folder_name.clone());
         self.index_folder_path = index_folder_dir.clone();
         let _ = fs::create_dir_all(index_folder_dir.clone());
-    
-        let index_dir = index_folder_dir.join(DescIndex::DescPointIndex.to_string());
-        let _ = fs::create_dir_all(index_dir);
 
-        let index_dir = index_folder_dir.join(DescIndex::DescNameIndex.to_string());
-        let _ = fs::create_dir_all(index_dir);
-
-        let index_dir = index_folder_dir.join(DescIndex::DescLabelIndex.to_string());
-        let _ = fs::create_dir_all(index_dir);
-
-        let index_dir = index_folder_dir.join(DescIndex::DescDescIndex.to_string());
-        let _ = fs::create_dir_all(index_dir);
-
+        Self::create_file_if_not_there(DescIndex::DescPointIndex.to_string(), index_folder_dir.clone());
+        Self::create_file_if_not_there(DescIndex::DescNameIndex.to_string(), index_folder_dir.clone());
+        Self::create_file_if_not_there(DescIndex::DescLabelIndex.to_string(), index_folder_dir.clone());
+        Self::create_file_if_not_there(DescIndex::DescDescIndex.to_string(), index_folder_dir.clone());
     }
 
 
@@ -352,25 +345,25 @@ impl DescriptorStore for DescriptorStoreFS {
     ///
     fn get_desc_point_indexes(&self) -> String {
         let filename = self.get_index_path(DescIndex::DescPointIndex);
-        fs::read_to_string(filename).unwrap_or_default()
+        fs::read_to_string(filename).expect("desc_point_index file missing - was init_folders() run?")
     }
 
     fn get_desc_name_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescNameIndex);
-        fs::read_to_string(filename).unwrap_or_default()
+        fs::read_to_string(filename).expect("desc_name_index file missing - was init_folders() run?")
     }
 
     fn get_desc_label_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescLabelIndex);
-        fs::read_to_string(filename).unwrap_or_default()
+        fs::read_to_string(filename).expect("desc_label_index file missing - was init_folders() run?")
     }
 
     fn get_desc_description_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescDescIndex);
-        fs::read_to_string(filename).unwrap_or_default()
+        fs::read_to_string(filename).expect("desc_description_index file missing - was init_folders() run?")
     }
 
     ///
@@ -384,7 +377,7 @@ impl DescriptorStore for DescriptorStoreFS {
         self.set_tmp_space_id(space_id);
         let filename = self.get_index_path(DescIndex::DescPointIndex);
         self.revert_space_id();
-        fs::read_to_string(filename).unwrap_or_default()
+        fs::read_to_string(filename).expect("desc_point_index file missing - was init_folders() run?")
     }
 
 
@@ -405,5 +398,36 @@ impl DescriptorStore for DescriptorStoreFS {
         file_tools::write(self.get_index_path(descriptor_facade::DescIndex::DescDescIndex), lines);
     }
 
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn new_store_in(temp: &PathBuf) -> DescriptorStoreFS {
+        let mut store = DescriptorStoreFS::default();
+        store.config = DescConfig { app_parent_path: temp.clone(), ..DescConfig::default() };
+        DescriptorStoreFS::init_folders(&mut store);
+        store
+    }
+
+    #[test]
+    fn init_folders_can_be_called_repeatedly_and_index_files_stay_readable() {
+        let temp = std::env::temp_dir().join(format!("ig_desc_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+
+        let mut store = new_store_in(&temp);
+        // init_folders is also called by set_tmp_space_id/revert_space_id, so it must be safe
+        // to call more than once without breaking the index files it created.
+        DescriptorStoreFS::init_folders(&mut store);
+
+        assert_eq!(store.get_desc_point_indexes(), "");
+        assert_eq!(store.get_desc_name_indexes(), "");
+        assert_eq!(store.get_desc_label_indexes(), "");
+        assert_eq!(store.get_desc_description_indexes(), "");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
 }
 
