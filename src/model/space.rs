@@ -46,13 +46,13 @@ impl Space {
 }
 
 ///
-/// Implementing the ToString trait
+/// Implementing the Display trait
 ///
-impl ToString for Space {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Space {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Space::String(s) => s.clone(),
-            Space::Option(opt) => opt.clone().unwrap_or_default(),
+            Space::String(s) => write!(f, "{}", s),
+            Space::Option(opt) => write!(f, "{}", opt.clone().unwrap_or_default()),
         }
     }
 }
