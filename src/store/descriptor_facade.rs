@@ -77,12 +77,10 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
 
     pub fn get_descs_hashmap_for_list(&self, list: Vec<String>) -> HashMap<String, Descriptor> {
         let mut descs: HashMap<String, Descriptor> = HashMap::new();
-        self.get_descs_or_else_ids(list)
-            .iter()
-            .for_each(|x|{
-                descs.insert(x.point.clone(), x.clone());
-            });
-         descs   
+        for x in self.get_descs_or_else_ids(list) {
+            descs.insert(x.point.clone(), x);
+        }
+        descs
     }
 
     pub fn get_all_descs(&self) -> Vec<Descriptor> {
