@@ -19,7 +19,7 @@ impl<T:DescriptorStore> DescDirector<T> {
     /// Newlines and surrounding white spaces in the single line fields are automatically filtered
     /// out.
     ///
-    pub fn create_desc(&self, point: String, name: String, label: String, description: String) -> Descriptor{
+    pub fn create_desc(&self, point: &str, name: &str, label: &str, description: &str) -> Descriptor{
         let mut desc = Descriptor{
             point: point.trim().replace("\n", "").replace("\r", "").to_string(),
             desc_id: "".trim().to_string(),
@@ -45,7 +45,7 @@ impl<T:DescriptorStore> DescDirector<T> {
     ///
     /// Returns a list with all descriptor notes annotated with line numbers.
     ///
-    pub fn get_desc_ls_line_number(&self, line_number: String) -> String {
+    pub fn get_desc_ls_line_number(&self, line_number: &str) -> String {
         let descs: Vec<String> = self.descriptors.get_all_desc_ids();
         line_number.parse::<usize>().ok()
             .and_then(|i| descs.get(i).cloned())

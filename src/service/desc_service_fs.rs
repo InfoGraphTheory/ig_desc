@@ -36,15 +36,15 @@ impl DescServiceFS {
         self.tmp_space = Some(self.org_space.clone());
     }
 
-    pub fn create_desc(&self, point: String, name: String, label: String, description: String) -> Descriptor {
-        self.descs.create_desc( point, name, label, description)
+    pub fn create_desc(&self, point: &str, name: &str, label: &str, description: &str) -> Descriptor {
+        self.descs.create_desc(point, name, label, description)
     }
 
     pub fn ls_descs(&self) -> String {
         self.descs.ls_descriptor_notes()
     }
 
-    pub fn get_desc_ls_line_number(&self, line_number: String) -> String {
+    pub fn get_desc_ls_line_number(&self, line_number: &str) -> String {
         self.descs.get_desc_ls_line_number(line_number)
     }
 
