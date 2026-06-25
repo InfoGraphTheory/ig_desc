@@ -13,14 +13,15 @@ pub enum DescIndex {
     DescDescIndex,
 }
 
-impl ToString for DescIndex {
-    fn to_string(&self) -> String {
-        match self {
-            DescIndex::DescPointIndex => String::from("Desc_point_index"),
-            DescIndex::DescNameIndex => String::from("Desc_name_index"),
-            DescIndex::DescLabelIndex => String::from("Desc_label_index"),
-            DescIndex::DescDescIndex => String::from("Desc_desc_index"),
-        }
+impl std::fmt::Display for DescIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            DescIndex::DescPointIndex => "Desc_point_index",
+            DescIndex::DescNameIndex => "Desc_name_index",
+            DescIndex::DescLabelIndex => "Desc_label_index",
+            DescIndex::DescDescIndex => "Desc_desc_index",
+        };
+        write!(f, "{}", s)
     }
 }
 
