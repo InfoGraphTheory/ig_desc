@@ -91,8 +91,7 @@ impl DescriptorStoreFS {
             config.org_space = space_id.clone();    
         }
 
-        let mut instance: DescriptorStoreFS = DescriptorStoreFS::default();
-        instance.config = config;
+        let mut instance = DescriptorStoreFS { config, ..DescriptorStoreFS::default() };
         Self::init_folders(&mut instance);
 
         instance
@@ -225,7 +224,7 @@ impl DescriptorStore for DescriptorStoreFS {
     /// the used space id to the original one.
     ///
     fn revert_space_id(&mut self) {
-        self.config.tmp_space = Space::from(self.config.org_space.clone());
+        self.config.tmp_space = self.config.org_space.clone();
         Self::init_folders(self);
     }
 
@@ -274,13 +273,10 @@ impl DescriptorStore for DescriptorStoreFS {
 
         let point = lines.find_map(|x| x.split_once(' ').and_then(|y| if y.0 == name { Some(y.1) } else { None }));
 
-        let mut content = "".to_string();
-        if point.is_some(){
-            content = self.load_desc(point.unwrap());
-        }
+        let content = if let Some(p) = point { self.load_desc(p) } else { "".to_string() };
         if content.is_empty() {
             return Descriptor{
-                point: name.to_string(), 
+                point: name.to_string(),
                 desc_id: "".to_string(),
                 description: "".to_string(),
                 label: "".to_string(),
@@ -298,10 +294,7 @@ impl DescriptorStore for DescriptorStoreFS {
         let point = lines
             .find_map(|x| x.split_once(' ').and_then(|y| if y.0 == name { Some(y.1) } else { None }));
 
-        let mut content = "".to_string();
-        if point.is_some(){
-            content = self.load_desc(point.unwrap());
-        }
+        let content = if let Some(p) = point { self.load_desc(p) } else { "".to_string() };
         Descriptor::from(content)
     }
     
