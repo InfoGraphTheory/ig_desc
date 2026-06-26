@@ -26,7 +26,7 @@ impl<T:DescriptorStore> DescDirector<T> {
             name: Some(Name(name.trim().replace("\n", "").replace("\r", ""))),
             label: Some(Label(label.trim().replace("\n", "").replace("\r", ""))),
             description: Some(Description(description.trim().to_string())),
-            ..Default::default()
+            desc_id: None,
         };
         let desc_id = self.descriptors.add_desc(desc.clone());
         desc.set_desc_id(&desc_id);
