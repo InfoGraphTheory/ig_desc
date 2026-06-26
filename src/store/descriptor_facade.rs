@@ -1,4 +1,4 @@
-use crate::Descriptor;
+use crate::{Descriptor, model::descriptor::DescId};
 use delve::{EnumFromStr, EnumToStr};
 use std::collections::HashMap;
 use super::descriptor_store::DescriptorStore;
@@ -28,7 +28,7 @@ impl std::fmt::Display for DescIndex {
 
 #[derive(Clone)]
 pub struct DescriptorFacade<T:DescriptorStore> {
-    storage: T, 
+    storage: T,
 }
 
 impl<T:DescriptorStore> DescriptorFacade<T> {
@@ -44,7 +44,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
     pub fn add_desc_n_index(&self, desc: Descriptor) -> Descriptor {
         let desc_id = self.add_desc(desc.clone());
         let mut result = desc.clone();
-        result.desc_id = desc_id;
+        result.desc_id = Some(DescId(desc_id));
         self.add_desc_index(result.clone());
         result
     }
@@ -59,7 +59,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         id
     }
 
-    ///        
+    ///
     /// Helper method that adds indexes to a Descriptor.
     /// Consider using add_desc_n_index as it calls this method and stores the Descriptor as well.
     ///
@@ -72,14 +72,14 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
     }
 
     pub fn get_descs_or_else_ids(&self, points: Vec<String>) -> Vec<Descriptor> {
-    
+
         self.storage.get_descs_or_else_ids(points)
     }
 
     pub fn get_descs_hashmap_for_list(&self, list: Vec<String>) -> HashMap<String, Descriptor> {
         let mut descs: HashMap<String, Descriptor> = HashMap::new();
         for x in self.get_descs_or_else_ids(list) {
-            descs.insert(x.point.clone(), x);
+            descs.insert(x.point.to_string(), x);
         }
         descs
     }
@@ -90,7 +90,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
 
     pub fn get_all_desc_ids(&self) -> Vec<String> {
         let point_indexes = self.storage.get_desc_point_indexes();
-        let lines = point_indexes.lines(); 
+        let lines = point_indexes.lines();
         let ids: Vec<String> = lines.map(|x|{x.split_once(' ').unwrap().1.to_string()}).collect();
         ids
     }
@@ -99,4 +99,3 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         self.storage.get_desc(name)
     }
 }
-

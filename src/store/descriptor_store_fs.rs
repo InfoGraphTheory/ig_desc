@@ -1,5 +1,5 @@
 
-use crate::{Descriptor, model::{space::Space, app::App}};
+use crate::{Descriptor, model::{space::Space, app::App, descriptor::Point}};
 use std::{fs, path::Path};
 use super::{descriptor_store::DescriptorStore, descriptor_facade::{DescIndex, self}};
 use ig_tools::file_tools;
@@ -190,15 +190,14 @@ impl DescriptorStoreFS {
     /// This method is very general and therefore useful as helper method when appending to
     /// multiple indexes.
     ///
-    fn append_index(id: String, value: String, index: String) -> String {
-        let mut line: String = id;
-        line.push(' ');
-        line.push_str(value.as_str());
-        let mut result: String = index.clone();
-        if !result.is_empty() {    
+    fn append_index(id: &str, value: &str, index: String) -> String {
+        let mut result = index;
+        if !result.is_empty() {
             result.push('\n');
         }
-        result.push_str(line.as_str());
+        result.push_str(id);
+        result.push(' ');
+        result.push_str(value);
         result
     }
 
@@ -275,13 +274,7 @@ impl DescriptorStore for DescriptorStoreFS {
 
         let content = if let Some(p) = point { self.load_desc(p) } else { "".to_string() };
         if content.is_empty() {
-            return Descriptor{
-                point: name.to_string(),
-                desc_id: "".to_string(),
-                description: "".to_string(),
-                label: "".to_string(),
-                name: "".to_string(),
-            }
+            return Descriptor { point: Point(name.to_string()), ..Default::default() };
         }
         Descriptor::from(content)
     }
@@ -314,23 +307,23 @@ impl DescriptorStore for DescriptorStoreFS {
     /// It is important that the descriptor note has a desc_id. 
     ///
     fn index_desc(&self, desc: Descriptor) {
+        let id = desc.desc_id.as_deref().unwrap_or("");
 
-        let mut point_index = self.get_desc_point_indexes();
-        point_index = Self::append_index(desc.desc_id.clone(), desc.point.clone(), point_index.clone());
+        let point_index = self.get_desc_point_indexes();
+        let point_index = Self::append_index(id, &desc.point, point_index);
         self.set_desc_point_indexes(&point_index);
 
-        let mut name_index = self.get_desc_name_indexes();
-        name_index = Self::append_index(desc.desc_id.clone(), desc.name.clone(), name_index.clone());
+        let name_index = self.get_desc_name_indexes();
+        let name_index = Self::append_index(id, desc.name.as_deref().unwrap_or(""), name_index);
         self.set_desc_name_indexes(&name_index);
 
-        let mut label_index = self.get_desc_label_indexes();
-        label_index = Self::append_index(desc.desc_id.clone(), desc.label.clone(), label_index.clone());
+        let label_index = self.get_desc_label_indexes();
+        let label_index = Self::append_index(id, desc.label.as_deref().unwrap_or(""), label_index);
         self.set_desc_label_indexes(&label_index);
 
-        let mut desc_index = self.get_desc_description_indexes();
-        desc_index = Self::append_index(desc.desc_id.clone(), desc.description.clone(), desc_index.clone());
+        let desc_index = self.get_desc_description_indexes();
+        let desc_index = Self::append_index(id, desc.description.as_deref().unwrap_or(""), desc_index);
         self.set_desc_description_indexes(&desc_index);
-
     }
 
     ///

@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use crate::{Descriptor, descriptor_facade::DescriptorFacade, descriptor_store::DescriptorStore};
+use crate::model::descriptor::{Point, Name, Label, Description};
 
 #[derive(Clone)]
 pub struct DescDirector <T:DescriptorStore> {
@@ -14,18 +15,18 @@ impl<T:DescriptorStore> DescDirector<T> {
         DescDirector{descriptors}
     }
 
-    /// 
-    /// Creates and saves Descriptor and indexes. 
+    ///
+    /// Creates and saves Descriptor and indexes.
     /// Newlines and surrounding white spaces in the single line fields are automatically filtered
     /// out.
     ///
-    pub fn create_desc(&self, point: &str, name: &str, label: &str, description: &str) -> Descriptor{
-        let mut desc = Descriptor{
-            point: point.trim().replace("\n", "").replace("\r", "").to_string(),
-            desc_id: "".trim().to_string(),
-            name: name.trim().replace("\n", "").replace("\r", "").to_string(),
-            label: label.trim().replace("\n", "").replace("\r", "").to_string(),
-            description: description.trim().to_string(),
+    pub fn create_desc(&self, point: &str, name: &str, label: &str, description: &str) -> Descriptor {
+        let mut desc = Descriptor {
+            point: Point(point.trim().replace("\n", "").replace("\r", "")),
+            name: Some(Name(name.trim().replace("\n", "").replace("\r", ""))),
+            label: Some(Label(label.trim().replace("\n", "").replace("\r", ""))),
+            description: Some(Description(description.trim().to_string())),
+            ..Default::default()
         };
         let desc_id = self.descriptors.add_desc(desc.clone());
         desc.set_desc_id(&desc_id);
@@ -34,12 +35,16 @@ impl<T:DescriptorStore> DescDirector<T> {
     }
 
     ///
-    /// Returns a list with all descriptor notes. 
+    /// Returns a list with all descriptor notes.
     ///
     pub fn ls_descriptor_notes(&self) -> String {
         let descs = self.descriptors.get_all_descs();
-        descs.iter().enumerate().map(|(c,d)| format!("{}: {} {} {} {}\n",c, d.point, d.name, d.label, d.description))
-            .reduce(|mut result, var| { result.push_str(&var); result}).unwrap()
+        descs.iter().enumerate().map(|(c, d)| format!("{}: {} {} {} {}\n", c,
+            d.point,
+            d.name.as_deref().unwrap_or(""),
+            d.label.as_deref().unwrap_or(""),
+            d.description.as_deref().unwrap_or("")))
+            .reduce(|mut result, var| { result.push_str(&var); result }).unwrap()
     }
 
     ///
