@@ -106,7 +106,7 @@ impl DescriptorStoreFS {
     ///    
     fn init_folders(&mut self) {
 
-        let desc_config: DescConfig = self.clone().config;
+        let desc_config = self.config.clone();
 
         let data_dir = desc_config.app_parent_path.clone();
         self.app_folder_path = data_dir.join(&desc_config.app_folder_name);
