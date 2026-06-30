@@ -307,22 +307,24 @@ impl DescriptorStore for DescriptorStoreFS {
     /// It is important that the descriptor note has a desc_id. 
     ///
     fn index_desc(&self, desc: Descriptor) {
+        // Index format is "{field_value} {desc_id}": search by field_value (y.0),
+        // load file by desc_id (y.1). First column can be sorted for future binary search.
         let id = desc.desc_id.as_deref().unwrap_or("");
 
         let point_index = self.get_desc_point_indexes();
-        let point_index = Self::append_index(id, &desc.point, point_index);
+        let point_index = Self::append_index(&desc.point, id, point_index);
         self.set_desc_point_indexes(&point_index);
 
         let name_index = self.get_desc_name_indexes();
-        let name_index = Self::append_index(id, desc.name.as_deref().unwrap_or(""), name_index);
+        let name_index = Self::append_index(desc.name.as_deref().unwrap_or(""), id, name_index);
         self.set_desc_name_indexes(&name_index);
 
         let label_index = self.get_desc_label_indexes();
-        let label_index = Self::append_index(id, desc.label.as_deref().unwrap_or(""), label_index);
+        let label_index = Self::append_index(desc.label.as_deref().unwrap_or(""), id, label_index);
         self.set_desc_label_indexes(&label_index);
 
         let desc_index = self.get_desc_description_indexes();
-        let desc_index = Self::append_index(id, desc.description.as_deref().unwrap_or(""), desc_index);
+        let desc_index = Self::append_index(desc.description.as_deref().unwrap_or(""), id, desc_index);
         self.set_desc_description_indexes(&desc_index);
     }
 
@@ -390,6 +392,16 @@ impl DescriptorStore for DescriptorStoreFS {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::store::descriptor_facade::DescriptorFacade;
+    use crate::logic::desc_director::DescDirector;
+    use crate::model::descriptor::{Name, Label, Description};
+    use crate::DescId;
+
+    fn temp_dir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("ig_desc_test_{}_{}", std::process::id(), tag));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
 
     fn new_store_in(temp: &PathBuf) -> DescriptorStoreFS {
         let mut store = DescriptorStoreFS::default();
@@ -398,11 +410,13 @@ mod tests {
         store
     }
 
+    fn new_director_in(temp: &PathBuf) -> DescDirector<DescriptorStoreFS> {
+        DescDirector::new(DescriptorFacade::new(new_store_in(temp)))
+    }
+
     #[test]
     fn init_folders_can_be_called_repeatedly_and_index_files_stay_readable() {
-        let temp = std::env::temp_dir().join(format!("ig_desc_test_{}", std::process::id()));
-        let _ = fs::remove_dir_all(&temp);
-
+        let temp = temp_dir("init");
         let mut store = new_store_in(&temp);
         // init_folders is also called by set_tmp_space_id/revert_space_id, so it must be safe
         // to call more than once without breaking the index files it created.
@@ -412,6 +426,80 @@ mod tests {
         assert_eq!(store.get_desc_name_indexes(), "");
         assert_eq!(store.get_desc_label_indexes(), "");
         assert_eq!(store.get_desc_description_indexes(), "");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn create_desc_persists_and_is_retrievable_by_point() {
+        let temp = temp_dir("create_retrieve");
+        let director = new_director_in(&temp);
+
+        let created = director.create_desc("my-point", "my name", "my label", "my description");
+
+        assert!(created.desc_id.is_some(), "desc_id should be set after create");
+        assert_eq!(&*created.point, "my-point");
+
+        let facade = DescriptorFacade::new(new_store_in(&temp));
+        let retrieved = facade.get_desc("my-point");
+        assert_eq!(&*retrieved.point, "my-point");
+        assert_eq!(retrieved.name.as_deref(), Some("my name"));
+        assert_eq!(retrieved.label.as_deref(), Some("my label"));
+        assert_eq!(retrieved.description.as_deref(), Some("my description"));
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn get_all_descs_returns_all_created_descriptors() {
+        let temp = temp_dir("get_all");
+        let director = new_director_in(&temp);
+
+        director.create_desc("point-a", "name a", "label a", "desc a");
+        director.create_desc("point-b", "name b", "label b", "desc b");
+
+        let facade = DescriptorFacade::new(new_store_in(&temp));
+        let all = facade.get_all_descs();
+        assert_eq!(all.len(), 2);
+
+        let points: Vec<&str> = all.iter().map(|d| d.point.as_ref()).collect();
+        assert!(points.contains(&"point-a"));
+        assert!(points.contains(&"point-b"));
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn get_desc_or_id_returns_point_only_descriptor_when_not_found() {
+        let temp = temp_dir("or_id_fallback");
+        let store = new_store_in(&temp);
+
+        let result = store.get_desc_or_id("unknown-point");
+        assert_eq!(&*result.point, "unknown-point");
+        assert!(result.desc_id.is_none());
+        assert!(result.name.is_none());
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn index_desc_writes_field_value_then_desc_id() {
+        let temp = temp_dir("index_format");
+        let store = new_store_in(&temp);
+
+        let desc = Descriptor {
+            point: Point("my-point".to_string()),
+            desc_id: Some(DescId("abc123".to_string())),
+            name: Some(Name("my-name".to_string())),
+            label: Some(Label("my-label".to_string())),
+            description: Some(Description("my-desc".to_string())),
+        };
+        store.index_desc(desc);
+
+        assert_eq!(store.get_desc_point_indexes(), "my-point abc123");
+        assert_eq!(store.get_desc_name_indexes(), "my-name abc123");
+        assert_eq!(store.get_desc_label_indexes(), "my-label abc123");
+        assert_eq!(store.get_desc_description_indexes(), "my-desc abc123");
 
         let _ = fs::remove_dir_all(&temp);
     }
