@@ -97,7 +97,7 @@ impl From<String> for Descriptor {
         let point = lines.next().unwrap_or("").to_string();
         let name = lines.next().unwrap_or("").to_string();
         let label = lines.next().unwrap_or("").to_string();
-        let description = lines.next().unwrap_or("").to_string();
+        let description = lines.collect::<Vec<_>>().join("\n");
         Descriptor {
             point: Point(point),
             name: if name.is_empty() { None } else { Some(Name(name)) },
