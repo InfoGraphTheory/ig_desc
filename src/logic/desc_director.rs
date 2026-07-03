@@ -4,6 +4,9 @@ use std::collections::HashMap;
 use crate::{Descriptor, descriptor_facade::DescriptorFacade, descriptor_store::DescriptorStore};
 use crate::model::descriptor::{Point, Name, Label, Description};
 
+/// Orchestrates descriptor creation, listing and lookup as sequences of steps for specific
+/// tasks, abstracting away details like how storage and indexing are implemented — those are
+/// delegated to a `DescriptorFacade<T>`.
 #[derive(Clone)]
 pub struct DescDirector <T:DescriptorStore> {
    descriptors: DescriptorFacade<T>,
@@ -11,6 +14,7 @@ pub struct DescDirector <T:DescriptorStore> {
 
 impl<T:DescriptorStore> DescDirector<T> {
 
+    /// Wraps a `DescriptorFacade<T>` in a new `DescDirector`.
     pub fn new(descriptors: DescriptorFacade<T>) -> Self {
         DescDirector{descriptors}
     }

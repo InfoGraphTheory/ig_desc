@@ -2,6 +2,7 @@
 use crate::Descriptor;
 use ig_tools::hashing_tools;
 
+/// Computes a Descriptor's `desc_id` from its current field values (see `create_desc_id`).
 pub fn get_desc_id(desc: &Descriptor) -> String {
     create_desc_id(
         &desc.point,
@@ -39,23 +40,29 @@ pub fn create_desc_id(point: &str, name: &str, label: &str, description: &str) -
 }
 
 
+/// Builds a `point` index line (`"{point} {desc_id}"`) for a Descriptor.
 pub fn create_desc_point_index_line(desc: &Descriptor) -> String {
     create_desc_index_line(desc, &desc.point)
 }
 
+/// Builds a `name` index line (`"{name} {desc_id}"`) for a Descriptor.
 pub fn create_desc_name_index_line(desc: &Descriptor) -> String {
     create_desc_index_line(desc, desc.name.as_deref().unwrap_or(""))
 }
 
+/// Builds a `label` index line (`"{label} {desc_id}"`) for a Descriptor.
 pub fn create_desc_label_index_line(desc: &Descriptor) -> String {
     create_desc_index_line(desc, desc.label.as_deref().unwrap_or(""))
 }
 
+/// Builds a `description` index line (`"{description} {desc_id}"`) for a Descriptor.
 pub fn create_desc_description_index_line(desc: &Descriptor) -> String {
     create_desc_index_line(desc, desc.description.as_deref().unwrap_or(""))
 }
 
 
+/// Builds an index line pairing `field` with the Descriptor's `desc_id`, in the
+/// `"{field} {desc_id}"` format all lookup functions expect.
 pub fn create_desc_index_line(desc: &Descriptor, field: &str) -> String {
     let id = self::get_desc_id(desc);
     let mut addition = field.trim().to_string();

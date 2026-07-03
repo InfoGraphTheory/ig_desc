@@ -1,6 +1,7 @@
 
 macro_rules! impl_str_newtype {
     ($t:ident) => {
+        #[doc = concat!("Newtype wrapper around a `String` used for a `Descriptor`'s `", stringify!($t), "` field.")]
         #[derive(Debug, Clone, PartialEq, Default)]
         pub struct $t(pub String);
 
@@ -32,12 +33,22 @@ impl_str_newtype!(Label);
 impl_str_newtype!(Description);
 
 
+/// A descriptor note: a required `point`, with optional `name`, `label` and `description` fields.
+///
+/// `point` need not be unique — several descriptors may describe the same `point`. Uniqueness
+/// comes from `desc_id`, a hash of the descriptor's fields that is computed and assigned once
+/// the descriptor is persisted; it is `None` on a freshly constructed descriptor.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Descriptor {
+    /// Unique identifier assigned once the descriptor has been persisted. `None` until then.
     pub desc_id: Option<DescId>,
+    /// The descriptor's point of reference. Not required to be unique.
     pub point: Point,
+    /// Optional short name.
     pub name: Option<Name>,
+    /// Optional short label.
     pub label: Option<Label>,
+    /// Optional, possibly multi-line, description.
     pub description: Option<Description>,
 }
 
@@ -54,26 +65,34 @@ impl Default for Descriptor {
 }
 
 impl Descriptor {
+    /// Sets `desc_id`, trimming whitespace and stripping newlines. Sets to `None` if the result is empty.
     pub fn set_desc_id(&mut self, desc_id: &str) {
         let s = desc_id.trim().replace("\n", "").replace("\r", "");
         self.desc_id = if s.is_empty() { None } else { Some(DescId(s)) };
     }
 
+    /// Sets `name`, trimming whitespace and stripping newlines. Sets to `None` if the result is empty.
     pub fn set_name(&mut self, name: &str) {
         let s = name.trim().replace("\n", "").replace("\r", "");
         self.name = if s.is_empty() { None } else { Some(Name(s)) };
     }
 
+    /// Sets `label`, trimming whitespace and stripping newlines. Sets to `None` if the result is empty.
     pub fn set_label(&mut self, label: &str) {
         let s = label.trim().replace("\n", "").replace("\r", "");
         self.label = if s.is_empty() { None } else { Some(Label(s)) };
     }
 
+    /// Sets `description`, trimming surrounding whitespace. Internal newlines are preserved since
+    /// a description may span multiple lines. Sets to `None` if the result is empty.
     pub fn set_description(&mut self, description: &str) {
         self.description = if description.is_empty() { None } else { Some(Description(description.to_string())) };
     }
 }
 
+/// Serializes a `Descriptor` to its on-disk line format: `point`, `name`, `label`, then
+/// `description` — one field per line, in that order. `point`, `name` and `label` are
+/// trimmed and stripped of embedded newlines; `description` may itself span multiple lines.
 impl From<Descriptor> for String {
     fn from(desc: Descriptor) -> String {
         let mut s = String::new();
@@ -88,6 +107,9 @@ impl From<Descriptor> for String {
     }
 }
 
+/// Parses the line format produced by `From<Descriptor> for String`: the first three lines
+/// are `point`, `name` and `label`; everything after that is joined back together (with `\n`)
+/// as `description`. Missing trailing fields default to empty/`None`.
 impl From<String> for Descriptor {
     fn from(string: String) -> Descriptor {
         if string.is_empty() {
@@ -120,6 +142,9 @@ pub(crate) fn mock() -> Descriptor {
 }
 
 impl Descriptor {
+    /// Builds a `Descriptor` for tests where every field (`point`, `desc_id`, `name`, `label`,
+    /// `description`) is derived from `identifier_label`, so distinct labels produce distinct,
+    /// easily distinguishable descriptors.
     #[allow(dead_code)]
     pub fn mock_with_id(identifier_label: &str) -> Descriptor {
         Descriptor {

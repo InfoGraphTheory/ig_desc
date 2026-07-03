@@ -1,3 +1,14 @@
+//! An implementation of descriptor notes.
+//!
+//! A [`Descriptor`] is a small note with a `point`, and optional `name`, `label` and
+//! `description` fields. Its `desc_id` — a hash of those fields, assigned once persisted —
+//! is the descriptor's real unique identifier; multiple descriptors may share the same
+//! `point`. This crate provides the model ([`Descriptor`] and its field newtypes), a general
+//! [`descriptor_store`] trait for persisting and querying descriptors, with a filesystem-based
+//! reference implementation ([`descriptor_store_fs`]), and a facade/service layer
+//! ([`descriptor_facade`], [`desc_service_fs`]) for creating, indexing and retrieving
+//! descriptors.
+
 mod logic;
 mod misc;
 mod model;
