@@ -5,11 +5,17 @@ use super::descriptor_store::DescriptorStore;
 use crate::misc::descriptor_tools;
 
 
+/// Identifies which of a Descriptor's four indexed fields (point, name, label, description) an
+/// index operation targets.
 #[derive(EnumFromStr, EnumToStr, Clone)]
 pub enum DescIndex {
+    /// The `point` index.
     DescPointIndex,
+    /// The `name` index.
     DescNameIndex,
+    /// The `label` index.
     DescLabelIndex,
+    /// The `description` index.
     DescDescIndex,
 }
 
@@ -26,6 +32,8 @@ impl std::fmt::Display for DescIndex {
 }
 
 
+/// A facade over a `DescriptorStore`, providing higher-level descriptor creation, indexing and
+/// retrieval operations built on top of the store's lower-level methods.
 #[derive(Clone)]
 pub struct DescriptorFacade<T:DescriptorStore> {
     storage: T,
@@ -33,6 +41,7 @@ pub struct DescriptorFacade<T:DescriptorStore> {
 
 impl<T:DescriptorStore> DescriptorFacade<T> {
 
+    /// Wraps a `DescriptorStore` implementation in a new `DescriptorFacade`.
     pub fn new(storage: T) -> Self{
         DescriptorFacade {storage}
     }
@@ -67,15 +76,19 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         self.storage.index_desc(desc);
     }
 
+    /// Returns the Descriptor stored for each of the given points, in order.
     pub fn get_descs(&self, points: Vec<&str>) -> Vec<Descriptor> {
         self.storage.get_descs(points)
     }
 
+    /// Returns the Descriptor stored for each of the given points, in order, falling back to a
+    /// point-only Descriptor for any point that isn't found.
     pub fn get_descs_or_else_ids(&self, points: Vec<String>) -> Vec<Descriptor> {
 
         self.storage.get_descs_or_else_ids(points)
     }
 
+    /// Returns a HashMap where the entry values are Descriptor Notes and their points are the keys.
     pub fn get_descs_hashmap_for_list(&self, list: Vec<String>) -> HashMap<String, Descriptor> {
         let mut descs: HashMap<String, Descriptor> = HashMap::new();
         for x in self.get_descs_or_else_ids(list) {
@@ -84,10 +97,12 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         descs
     }
 
+    /// Returns all stored Descriptors.
     pub fn get_all_descs(&self) -> Vec<Descriptor> {
         self.storage.get_all_descs()
     }
 
+    /// Returns the `desc_id` of every stored Descriptor, read from the point index.
     pub fn get_all_desc_ids(&self) -> Vec<String> {
         let point_indexes = self.storage.get_desc_point_indexes();
         let lines = point_indexes.lines();
@@ -95,6 +110,7 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         ids
     }
 
+    /// Returns the Descriptor stored at the given point.
     pub fn get_desc(&self, name: &str) -> Descriptor {
         self.storage.get_desc(name)
     }

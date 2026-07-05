@@ -37,6 +37,11 @@ impl ::std::default::Default for DescConfig {
 }
 
 
+/// A filesystem-based reference implementation of `DescriptorStore`. Descriptors are stored as
+/// individual files under a per-space desc folder, named by their `desc_id`; each of the four
+/// fields (point, name, label, description) has its own flat-file index under a per-space index
+/// folder, mapping field values to `desc_id`s. Folder locations are derived from a per-app,
+/// per-space configuration loaded via `confy`.
 #[derive(Clone)]
 pub struct DescriptorStoreFS {
     config: DescConfig,
@@ -243,10 +248,12 @@ impl DescriptorStore for DescriptorStoreFS {
 
 
 
+    /// Returns the Descriptor stored for each of the given points, in order.
     fn get_descs(&self, points: Vec<&str>) -> Vec<Descriptor> {
         points.iter().map(|x|self.get_desc(x)).collect()
     }
 
+    /// Returns all stored Descriptors.
     fn get_all_descs(&self) -> Vec<Descriptor> {
 
         let binding = self.get_desc_point_indexes();
@@ -262,10 +269,14 @@ impl DescriptorStore for DescriptorStoreFS {
    }
 
 
+    /// Returns the Descriptor stored for each of the given points, in order, falling back to a
+    /// point-only Descriptor for any point that isn't found.
     fn get_descs_or_else_ids(&self, points: Vec<String>) -> Vec<Descriptor> {
         points.iter().map(|x|self.get_desc_or_id(x)).collect()
     }
 
+    /// Returns the Descriptor stored at the given point, falling back to a point-only Descriptor
+    /// if not found.
     fn get_desc_or_id(&self, name: &str) -> Descriptor {
         let binding = self.get_desc_point_indexes();
         let mut lines = binding.lines();
@@ -280,6 +291,7 @@ impl DescriptorStore for DescriptorStoreFS {
     }
 
 
+    /// Returns the Descriptor stored at the given point.
     fn get_desc(&self, name: &str) -> Descriptor {
         let binding = self.get_desc_point_indexes();
         let mut lines = binding.lines();
@@ -336,18 +348,21 @@ impl DescriptorStore for DescriptorStoreFS {
         fs::read_to_string(filename).expect("desc_point_index file missing - was init_folders() run?")
     }
 
+    /// This method returns all indexing records of descriptors in current space, based on the name field.
     fn get_desc_name_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescNameIndex);
         fs::read_to_string(filename).expect("desc_name_index file missing - was init_folders() run?")
     }
 
+    /// This method returns all indexing records of descriptors in current space, based on the label field.
     fn get_desc_label_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescLabelIndex);
         fs::read_to_string(filename).expect("desc_label_index file missing - was init_folders() run?")
     }
 
+    /// This method returns all indexing records of descriptors in current space, based on the description field.
     fn get_desc_description_indexes(&self) -> String  {
 
         let filename = self.get_index_path(DescIndex::DescDescIndex);
@@ -369,19 +384,23 @@ impl DescriptorStore for DescriptorStoreFS {
     }
 
 
-    fn set_desc_point_indexes(&self, lines: &str) { 
-    
+    /// Overwrites the point index with the given contents.
+    fn set_desc_point_indexes(&self, lines: &str) {
+
         file_tools::write(self.get_index_path(descriptor_facade::DescIndex::DescPointIndex), lines);
     }
 
+    /// Overwrites the name index with the given contents.
     fn set_desc_name_indexes(&self, lines: &str){
         file_tools::write(self.get_index_path(descriptor_facade::DescIndex::DescNameIndex), lines);
     }
 
-    fn set_desc_label_indexes(&self, lines: &str) { 
+    /// Overwrites the label index with the given contents.
+    fn set_desc_label_indexes(&self, lines: &str) {
         file_tools::write(self.get_index_path(descriptor_facade::DescIndex::DescLabelIndex), lines);
     }
 
+    /// Overwrites the description index with the given contents.
     fn set_desc_description_indexes(&self, lines:&str) {
         file_tools::write(self.get_index_path(descriptor_facade::DescIndex::DescDescIndex), lines);
     }
