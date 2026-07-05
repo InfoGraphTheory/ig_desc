@@ -23,7 +23,7 @@ impl From<String> for App {
 }
 
 /// 
-/// Implementing the From trait for Option<String>
+/// Implementing the From trait for `Option<String>`
 ///
 impl From<Option<String>> for App {
     fn from(opt: Option<String>) -> Self {
@@ -33,7 +33,7 @@ impl From<Option<String>> for App {
 
 impl App {
     ///
-    ///Method to retrieve the value as an Option<String>
+    ///Method to retrieve the value as an `Option<String>`
     ///
     pub fn get_value(&self) -> Option<String> {
         match self {
