@@ -31,7 +31,12 @@ impl ::std::default::Default for DescConfig {
             desc_folder_name: "descs".to_string(),
             index_folder_name: "indexes".to_string(),
             org_space: Space::from("default".to_string()),
-            tmp_space: Space::Option(None),
+            // Not Space::Option(None): confy persists this default to TOML on first use of a
+            // config_name, and TOML has no representation for null, which made
+            // DescriptorStoreFS::new() panic on every fresh (never-before-seen) config_name.
+            // Space::get_value() already treats an empty string the same as None, so this is
+            // semantically identical while being serializable.
+            tmp_space: Space::String("".to_string()),
         }
     }
 }
