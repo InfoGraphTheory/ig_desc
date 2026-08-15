@@ -67,3 +67,40 @@ impl std::fmt::Display for App {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_value_returns_some_for_a_non_empty_string_variant() {
+        let app = App::String("my-app".to_string());
+        assert_eq!(app.get_value(), Some("my-app".to_string()));
+    }
+
+    #[test]
+    fn get_value_treats_an_empty_string_variant_as_none() {
+        let app = App::String("".to_string());
+        assert_eq!(app.get_value(), None);
+    }
+
+    #[test]
+    fn get_value_passes_through_the_option_variant_as_is() {
+        assert_eq!(App::Option(Some("my-app".to_string())).get_value(), Some("my-app".to_string()));
+        assert_eq!(App::Option(None).get_value(), None);
+    }
+
+    #[test]
+    fn is_none_and_is_some_agree_with_get_value() {
+        assert!(App::String("".to_string()).is_none());
+        assert!(!App::String("".to_string()).is_some());
+        assert!(App::String("x".to_string()).is_some());
+        assert!(!App::String("x".to_string()).is_none());
+    }
+
+    #[test]
+    fn display_falls_back_to_empty_string_for_a_none_option_variant() {
+        assert_eq!(App::Option(None).to_string(), "");
+        assert_eq!(App::String("my-app".to_string()).to_string(), "my-app");
+    }
+}
+

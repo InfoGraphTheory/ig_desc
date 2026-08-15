@@ -69,3 +69,55 @@ impl DescServiceFS {
         self.descs.get_descs_hashmap_for_list(list)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_sets_org_space_and_leaves_tmp_space_unset() {
+        let space_id = format!("ig_desc_test_service_new_{}", std::process::id());
+        let service = DescServiceFS::new(
+            App::from("ig_desc_test_app".to_string()),
+            Space::from(space_id.clone()),
+            "ig_desc_test_config".to_string(),
+        );
+        assert_eq!(service.org_space.get_value(), Some(space_id));
+        assert!(service.tmp_space.is_none());
+    }
+
+    #[test]
+    fn create_desc_round_trips_through_the_real_store() {
+        let space_id = format!("ig_desc_test_service_create_{}", std::process::id());
+        let service = DescServiceFS::new(
+            App::from("ig_desc_test_app".to_string()),
+            Space::from(space_id),
+            "ig_desc_test_config".to_string(),
+        );
+
+        let desc = service.create_desc("widget-1", "Widget One", "", "");
+
+        let map = service.get_descs_hashmap_for_list(vec!["widget-1".to_string()]);
+        assert_eq!(map.get("widget-1").and_then(|d| d.desc_id.clone()), desc.desc_id);
+    }
+
+    // Note: tmp_space here is plain bookkeeping on DescServiceFS itself - DescDirector /
+    // DescriptorFacade / DescriptorStoreFS never read it, so setting it has no effect on where
+    // create_desc/get_descs_hashmap_for_list actually read or write. This documents current
+    // behavior rather than a routing guarantee (same finding as TrServiceFS - see REVIEW_ig_tr.md).
+    #[test]
+    fn set_tmp_space_id_and_revert_space_id_update_the_field_but_not_storage_routing() {
+        let space_id = format!("ig_desc_test_service_revert_{}", std::process::id());
+        let mut service = DescServiceFS::new(
+            App::from("ig_desc_test_app".to_string()),
+            Space::from(space_id.clone()),
+            "ig_desc_test_config".to_string(),
+        );
+
+        service.set_tmp_space_id("some-other-space".to_string());
+        assert_eq!(service.tmp_space.as_ref().and_then(|s| s.get_value()), Some("some-other-space".to_string()));
+
+        service.revert_space_id();
+        assert_eq!(service.tmp_space.as_ref().and_then(|s| s.get_value()), Some(space_id));
+    }
+}

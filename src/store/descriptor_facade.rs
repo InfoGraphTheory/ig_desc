@@ -115,3 +115,92 @@ impl<T:DescriptorStore> DescriptorFacade<T> {
         self.storage.get_desc(name)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::descriptor_store_fs::DescriptorStoreFS;
+    use crate::model::{app::App, space::Space};
+    use crate::model::descriptor::{Point, Name};
+
+    fn new_facade(space_id: &str) -> DescriptorFacade<DescriptorStoreFS> {
+        DescriptorFacade::new(DescriptorStoreFS::new(
+            App::from("ig_desc_test_app".to_string()),
+            Space::from(space_id.to_string()),
+            "ig_desc_test_config".to_string(),
+        ))
+    }
+
+    #[test]
+    fn add_desc_n_index_sets_the_desc_id_and_the_descriptor_is_retrievable_by_point() {
+        let space_id = format!("ig_desc_test_facade_add_{}", std::process::id());
+        let facade = new_facade(&space_id);
+
+        let saved = facade.add_desc_n_index(Descriptor {
+            point: Point("widget-1".to_string()),
+            name: Some(Name("Widget One".to_string())),
+            ..Default::default()
+        });
+        assert!(saved.desc_id.is_some());
+
+        let fetched = facade.get_desc("widget-1");
+        assert_eq!(fetched.point.0, "widget-1");
+        assert_eq!(fetched.name.as_deref(), Some("Widget One"));
+    }
+
+    #[test]
+    fn get_descs_or_else_ids_falls_back_to_a_point_only_descriptor_when_not_found() {
+        let space_id = format!("ig_desc_test_facade_fallback_{}", std::process::id());
+        let facade = new_facade(&space_id);
+        facade.add_desc_n_index(Descriptor {
+            point: Point("known".to_string()),
+            name: Some(Name("Known".to_string())),
+            ..Default::default()
+        });
+
+        let descs = facade.get_descs_or_else_ids(vec!["known".to_string(), "unknown".to_string()]);
+
+        assert_eq!(descs.len(), 2);
+        assert_eq!(descs[0].name.as_deref(), Some("Known"));
+        assert_eq!(descs[1].point.0, "unknown");
+        assert!(descs[1].name.is_none());
+    }
+
+    #[test]
+    fn get_descs_hashmap_for_list_keys_by_point() {
+        let space_id = format!("ig_desc_test_facade_hashmap_{}", std::process::id());
+        let facade = new_facade(&space_id);
+        facade.add_desc_n_index(Descriptor {
+            point: Point("a".to_string()),
+            name: Some(Name("A".to_string())),
+            ..Default::default()
+        });
+
+        let map = facade.get_descs_hashmap_for_list(vec!["a".to_string()]);
+
+        assert_eq!(map.get("a").and_then(|d| d.name.as_deref()), Some("A"));
+    }
+
+    #[test]
+    fn get_all_descs_returns_every_descriptor_added_in_the_space() {
+        let space_id = format!("ig_desc_test_facade_all_{}", std::process::id());
+        let facade = new_facade(&space_id);
+        facade.add_desc_n_index(Descriptor { point: Point("a".to_string()), ..Default::default() });
+        facade.add_desc_n_index(Descriptor { point: Point("b".to_string()), ..Default::default() });
+
+        let all = facade.get_all_descs();
+        let mut points: Vec<String> = all.iter().map(|d| d.point.to_string()).collect();
+        points.sort();
+        assert_eq!(points, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn get_all_desc_ids_reads_ids_back_from_the_point_index() {
+        let space_id = format!("ig_desc_test_facade_ids_{}", std::process::id());
+        let facade = new_facade(&space_id);
+        let saved = facade.add_desc_n_index(Descriptor { point: Point("a".to_string()), ..Default::default() });
+
+        let ids = facade.get_all_desc_ids();
+        assert!(ids.contains(&saved.desc_id.unwrap().0));
+    }
+}

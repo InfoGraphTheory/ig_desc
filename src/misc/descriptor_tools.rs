@@ -70,3 +70,59 @@ pub fn create_desc_index_line(desc: &Descriptor, field: &str) -> String {
     addition.push_str(&id);
     addition.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::descriptor::{Point, Name, Label, Description};
+
+    fn desc(point: &str, name: &str, label: &str, description: &str) -> Descriptor {
+        Descriptor {
+            desc_id: None,
+            point: Point(point.to_string()),
+            name: Some(Name(name.to_string())),
+            label: Some(Label(label.to_string())),
+            description: Some(Description(description.to_string())),
+        }
+    }
+
+    #[test]
+    fn create_desc_id_is_deterministic_for_the_same_fields() {
+        let id1 = create_desc_id("p", "n", "l", "d");
+        let id2 = create_desc_id("p", "n", "l", "d");
+        assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn create_desc_id_differs_when_any_field_differs() {
+        let base = create_desc_id("p", "n", "l", "d");
+        assert_ne!(base, create_desc_id("p2", "n", "l", "d"));
+        assert_ne!(base, create_desc_id("p", "n2", "l", "d"));
+        assert_ne!(base, create_desc_id("p", "n", "l2", "d"));
+        assert_ne!(base, create_desc_id("p", "n", "l", "d2"));
+    }
+
+    #[test]
+    fn create_desc_id_strips_embedded_newlines_from_point_name_and_label() {
+        let clean = create_desc_id("p", "n", "l", "d");
+        let with_newlines = create_desc_id("p\n", "n\r\n", "l\n", "d");
+        assert_eq!(clean, with_newlines);
+    }
+
+    #[test]
+    fn get_desc_id_matches_create_desc_id_for_the_descriptors_fields() {
+        let d = desc("p", "n", "l", "d");
+        assert_eq!(get_desc_id(&d), create_desc_id("p", "n", "l", "d"));
+    }
+
+    #[test]
+    fn index_line_helpers_pair_the_field_with_the_desc_id() {
+        let d = desc("p", "n", "l", "d");
+        let id = get_desc_id(&d);
+
+        assert_eq!(create_desc_point_index_line(&d), format!("p {}", id));
+        assert_eq!(create_desc_name_index_line(&d), format!("n {}", id));
+        assert_eq!(create_desc_label_index_line(&d), format!("l {}", id));
+        assert_eq!(create_desc_description_index_line(&d), format!("d {}", id));
+    }
+}

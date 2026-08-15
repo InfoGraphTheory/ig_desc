@@ -48,7 +48,7 @@ impl<T:DescriptorStore> DescDirector<T> {
             d.name.as_deref().unwrap_or(""),
             d.label.as_deref().unwrap_or(""),
             d.description.as_deref().unwrap_or("")))
-            .reduce(|mut result, var| { result.push_str(&var); result }).unwrap()
+            .collect::<String>()
     }
 
     ///
@@ -66,5 +66,72 @@ impl<T:DescriptorStore> DescDirector<T> {
     ///
     pub fn get_descs_hashmap_for_list(&self, list: Vec<String>) -> HashMap<String, Descriptor> {
         self.descriptors.get_descs_hashmap_for_list(list)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::descriptor_store_fs::DescriptorStoreFS;
+    use crate::model::{app::App, space::Space};
+
+    fn new_director(space_id: &str) -> DescDirector<DescriptorStoreFS> {
+        DescDirector::new(DescriptorFacade::new(DescriptorStoreFS::new(
+            App::from("ig_desc_test_app".to_string()),
+            Space::from(space_id.to_string()),
+            "ig_desc_test_config".to_string(),
+        )))
+    }
+
+    #[test]
+    fn create_desc_trims_and_strips_newlines_from_single_line_fields() {
+        let space_id = format!("ig_desc_test_director_create_{}", std::process::id());
+        let director = new_director(&space_id);
+
+        let desc = director.create_desc(" widget-1 \n", " Widget \nOne ", " lbl\r\n ", " multi\nline\ndescription ");
+
+        assert_eq!(desc.point.0, "widget-1");
+        assert_eq!(desc.name.as_deref(), Some("Widget One"));
+        assert_eq!(desc.label.as_deref(), Some("lbl"));
+        assert_eq!(desc.description.as_deref(), Some("multi\nline\ndescription"));
+        assert!(desc.desc_id.is_some());
+    }
+
+    #[test]
+    fn get_desc_ls_line_number_returns_empty_string_for_an_out_of_range_or_invalid_index() {
+        let space_id = format!("ig_desc_test_director_line_invalid_{}", std::process::id());
+        let director = new_director(&space_id);
+        director.create_desc("widget-1", "Widget One", "", "");
+
+        assert_eq!(director.get_desc_ls_line_number("not-a-number"), "");
+        assert_eq!(director.get_desc_ls_line_number("999"), "");
+    }
+
+    #[test]
+    fn get_desc_ls_line_number_returns_the_desc_id_at_that_line() {
+        let space_id = format!("ig_desc_test_director_line_valid_{}", std::process::id());
+        let director = new_director(&space_id);
+        let desc = director.create_desc("widget-1", "Widget One", "", "");
+
+        assert_eq!(director.get_desc_ls_line_number("0"), desc.desc_id.unwrap().0);
+    }
+
+    #[test]
+    fn ls_descriptor_notes_does_not_panic_on_an_empty_space() {
+        // Regression test: previously used .reduce(...).unwrap(), which panics when there are
+        // no descriptors yet - same bug shape as edge_director::prettify, fixed the same way.
+        let space_id = format!("ig_desc_test_director_ls_empty_{}", std::process::id());
+        let director = new_director(&space_id);
+
+        assert_eq!(director.ls_descriptor_notes(), "");
+    }
+
+    #[test]
+    fn ls_descriptor_notes_lists_every_descriptor() {
+        let space_id = format!("ig_desc_test_director_ls_{}", std::process::id());
+        let director = new_director(&space_id);
+        director.create_desc("widget-1", "Widget One", "", "");
+
+        assert!(director.ls_descriptor_notes().contains("widget-1"));
     }
 }

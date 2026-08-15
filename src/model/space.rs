@@ -66,3 +66,40 @@ impl std::fmt::Display for Space {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_value_returns_some_for_a_non_empty_string_variant() {
+        let space = Space::String("my-space".to_string());
+        assert_eq!(space.get_value(), Some("my-space".to_string()));
+    }
+
+    #[test]
+    fn get_value_treats_an_empty_string_variant_as_none() {
+        let space = Space::String("".to_string());
+        assert_eq!(space.get_value(), None);
+    }
+
+    #[test]
+    fn get_value_passes_through_the_option_variant_as_is() {
+        assert_eq!(Space::Option(Some("my-space".to_string())).get_value(), Some("my-space".to_string()));
+        assert_eq!(Space::Option(None).get_value(), None);
+    }
+
+    #[test]
+    fn is_none_and_is_some_agree_with_get_value() {
+        assert!(Space::String("".to_string()).is_none());
+        assert!(!Space::String("".to_string()).is_some());
+        assert!(Space::String("x".to_string()).is_some());
+        assert!(!Space::String("x".to_string()).is_none());
+    }
+
+    #[test]
+    fn display_falls_back_to_empty_string_for_a_none_option_variant() {
+        assert_eq!(Space::Option(None).to_string(), "");
+        assert_eq!(Space::String("my-space".to_string()).to_string(), "my-space");
+    }
+}
+

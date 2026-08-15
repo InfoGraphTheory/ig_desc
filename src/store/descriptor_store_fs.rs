@@ -1,5 +1,5 @@
 
-use crate::{Descriptor, model::{space::Space, app::App, descriptor::Point}};
+use crate::{Descriptor, model::{space::Space, app::App, descriptor::{Point, DescId}}};
 use std::{fs, path::Path};
 use super::{descriptor_store::DescriptorStore, descriptor_facade::{DescIndex, self}};
 use ig_tools::file_tools;
@@ -267,7 +267,9 @@ impl DescriptorStore for DescriptorStoreFS {
 
         let filenames: Vec<&str> = lines.filter_map(|x| x.split_once(' ').map(|y| y.1)).collect();
         for filename in filenames {
-            descs.push(Descriptor::from(self.load_desc(filename)));
+            let mut desc = Descriptor::from(self.load_desc(filename));
+            desc.desc_id = Some(DescId(filename.to_string()));
+            descs.push(desc);
         };
 
         descs
@@ -292,7 +294,9 @@ impl DescriptorStore for DescriptorStoreFS {
         if content.is_empty() {
             return Descriptor { point: Point(name.to_string()), ..Default::default() };
         }
-        Descriptor::from(content)
+        let mut desc = Descriptor::from(content);
+        desc.desc_id = point.map(|p| DescId(p.to_string()));
+        desc
     }
 
 
@@ -305,7 +309,9 @@ impl DescriptorStore for DescriptorStoreFS {
             .find_map(|x| x.split_once(' ').and_then(|y| if y.0 == name { Some(y.1) } else { None }));
 
         let content = if let Some(p) = point { self.load_desc(p) } else { "".to_string() };
-        Descriptor::from(content)
+        let mut desc = Descriptor::from(content);
+        desc.desc_id = point.map(|p| DescId(p.to_string()));
+        desc
     }
     
 
@@ -470,6 +476,10 @@ mod tests {
         assert_eq!(retrieved.name.as_deref(), Some("my name"));
         assert_eq!(retrieved.label.as_deref(), Some("my label"));
         assert_eq!(retrieved.description.as_deref(), Some("my description"));
+        // Regression: get_desc used to always return desc_id: None, even for a descriptor it
+        // just found and loaded successfully, because Descriptor::from(String) has no way to
+        // know its own filename and get_desc never patched it back in.
+        assert_eq!(retrieved.desc_id, created.desc_id);
 
         let _ = fs::remove_dir_all(&temp);
     }
@@ -479,7 +489,7 @@ mod tests {
         let temp = temp_dir("get_all");
         let director = new_director_in(&temp);
 
-        director.create_desc("point-a", "name a", "label a", "desc a");
+        let created_a = director.create_desc("point-a", "name a", "label a", "desc a");
         director.create_desc("point-b", "name b", "label b", "desc b");
 
         let facade = DescriptorFacade::new(new_store_in(&temp));
@@ -489,6 +499,11 @@ mod tests {
         let points: Vec<&str> = all.iter().map(|d| d.point.as_ref()).collect();
         assert!(points.contains(&"point-a"));
         assert!(points.contains(&"point-b"));
+
+        // Regression: get_all_descs used to always return desc_id: None (same root cause as
+        // get_desc above) even though it reads the id straight off the index it just parsed.
+        let found_a = all.iter().find(|d| &*d.point == "point-a").unwrap();
+        assert_eq!(found_a.desc_id, created_a.desc_id);
 
         let _ = fs::remove_dir_all(&temp);
     }
